@@ -3,27 +3,16 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // 1. Set up CORS headers for the Edge response
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'OPTIONS, POST',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 
-  // 2. Intercept the browser's preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  // 3. Block non-POST requests
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Only POST allowed' }), { 
-      status: 405, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-
-  // 4. Check for API Key
   const API_KEY = process.env.GEMINI_API_KEY;
   if (!API_KEY) {
     return new Response(JSON.stringify({ error: 'API key is missing' }), { 
@@ -32,9 +21,11 @@ export default async function handler(req) {
     });
   }
 
-  // 5. Parse the incoming request and send to Gemini
   try {
-    const requestBody = await req.json();
+    // We use .text() instead of .json() here to handle the "Simple Request" trick
+    const rawText = await req.text();
+    const requestBody = JSON.parse(rawText);
+    
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
     const geminiResponse = await fetch(API_URL, {
@@ -45,16 +36,25 @@ export default async function handler(req) {
 
     const data = await geminiResponse.json();
 
-    // 6. Return the successful response back to your Google Site
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Failed to communicate with AI', details: error.message }), {
+    return new Response(JSON.stringify({ error: 'Failed', details: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 }
+```
+
+Click **Commit changes** and wait for Vercel to show the green checkmark on your deployment dashboard.
+
+### Step 2: Update your HTML file
+Now we update your frontend HTML code to send the data as `text/plain`. 
+
+Here is the diff to apply to your HTML file:
+
+```html:MS(2) AI Writing Coach:index.html
