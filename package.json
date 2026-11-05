@@ -1,0 +1,7 @@
+{
+  "name": "writing-coach-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node api/coach.js"
+  }
+}
